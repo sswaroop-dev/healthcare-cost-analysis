@@ -21,7 +21,8 @@ src/
 ├── visualization/             # Visualization modules
 │   ├── __init__.py
 │   ├── eda_plots.py          # Exploratory data analysis plots
-│   └── model_plots.py        # Model visualization utilities
+│   ├── model_plots.py        # Model visualization utilities
+│   └── report_plots.py       # Summary and report visualizations
 │
 └── utils/                    # Utility functions
     ├── __init__.py
@@ -61,8 +62,18 @@ src/
 - **Purpose**: Create data and model visualizations
 - **Key Components**:
   - `EDAVisualizer`: Exploratory data analysis plots
+    - Cost distributions
+    - Correlation matrices
+    - Demographic analyses
   - `ModelVisualizer`: Model-specific visualizations
-  - Supports various plot types and interactive visualizations
+    - Feature importance plots
+    - SHAP value analysis
+    - Residual plots
+  - `ReportVisualizer`: Summary and report visualizations
+    - Model comparison plots
+    - Error analysis
+    - Performance summaries
+    - Interactive dashboards
 
 ### 5. Utils Module (`utils/`)
 - **Purpose**: Common utility functions
@@ -80,6 +91,7 @@ src/
 from src.data import DataPreprocessor
 from src.features import FeatureEngineer
 from src.models import ModelTrainer, ModelEvaluator
+from src.visualization import EDAVisualizer, ModelVisualizer, ReportVisualizer
 
 # Initialize preprocessor
 preprocessor = DataPreprocessor('data/raw/healthcare_costs.csv')
@@ -92,6 +104,16 @@ features = engineer.process_features()
 # Train models
 trainer = ModelTrainer(features)
 trainer.train_all_models()
+
+# Create visualizations
+eda_viz = EDAVisualizer(processed_data)
+eda_viz.create_eda_dashboard()
+
+model_viz = ModelVisualizer(trainer.trained_models, trainer.X_test, trainer.y_test)
+model_viz.create_model_dashboard('random_forest')
+
+report_viz = ReportVisualizer()
+report_viz.create_summary_report(metrics_dict, importance_dict, error_dict)
 ```
 
 ### Running Complete Pipeline
