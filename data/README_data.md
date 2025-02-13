@@ -56,10 +56,6 @@
 3. Consider scaling numerical features
 4. Validate and clean outliers if necessary
 
-## Citation
-If you use this dataset, please cite:
-[Citation information to be added]
-
 ## Additional Notes
 - The dataset contains sensitive health information and should be handled according to relevant privacy regulations
 - All monetary values (cost) are in USD
