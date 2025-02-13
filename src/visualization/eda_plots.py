@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
-from typing import Optional, Tuple, List
+from typing import Optional, List
 import os
 
 class EDAVisualizer:
@@ -26,7 +26,7 @@ class EDAVisualizer:
         self.save_path = save_path
         self.create_save_dir()
         
-        # Set default style
+        # Set style for consistent visualization
         plt.style.use('seaborn')
         sns.set_palette("husl")
         
@@ -35,12 +35,7 @@ class EDAVisualizer:
         os.makedirs(self.save_path, exist_ok=True)
         
     def plot_cost_distribution(self, save: bool = True) -> None:
-        """
-        Plot distribution of healthcare costs.
-        
-        Args:
-            save (bool): Whether to save the plot
-        """
+        """Plot distribution of healthcare costs."""
         plt.figure(figsize=(10, 6))
         sns.histplot(data=self.data, x='cost', bins=50, kde=True)
         plt.title('Distribution of Healthcare Costs')
@@ -53,40 +48,14 @@ class EDAVisualizer:
         else:
             plt.show()
             
-    def plot_cost_by_category(self, category: str, save: bool = True) -> None:
-        """
-        Plot cost distribution by categorical variable.
-        
-        Args:
-            category (str): Categorical variable to analyze
-            save (bool): Whether to save the plot
-        """
-        plt.figure(figsize=(10, 6))
-        sns.boxplot(data=self.data, x=category, y='cost')
-        plt.title(f'Healthcare Costs by {category}')
-        plt.xticks(rotation=45)
-        plt.xlabel(category)
-        plt.ylabel('Cost (USD)')
-        
-        if save:
-            plt.savefig(os.path.join(self.save_path, f'cost_by_{category}.png'))
-            plt.close()
-        else:
-            plt.show()
-            
     def plot_correlation_matrix(self, save: bool = True) -> None:
-        """
-        Plot correlation matrix for numerical variables.
-        
-        Args:
-            save (bool): Whether to save the plot
-        """
+        """Plot correlation matrix for numerical variables."""
         numerical_cols = self.data.select_dtypes(include=['float64', 'int64']).columns
         corr_matrix = self.data[numerical_cols].corr()
         
         plt.figure(figsize=(12, 8))
         sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', center=0)
-        plt.title('Correlation Matrix')
+        plt.title('Correlation Matrix of Numerical Variables')
         
         if save:
             plt.savefig(os.path.join(self.save_path, 'correlation_matrix.png'))
@@ -95,12 +64,7 @@ class EDAVisualizer:
             plt.show()
             
     def plot_age_cost_relationship(self, save: bool = True) -> None:
-        """
-        Plot relationship between age and cost with smoking status.
-        
-        Args:
-            save (bool): Whether to save the plot
-        """
+        """Plot relationship between age and cost with smoking status."""
         plt.figure(figsize=(12, 6))
         sns.scatterplot(data=self.data, x='age', y='cost', hue='smoker', alpha=0.6)
         plt.title('Age vs. Cost by Smoking Status')
@@ -113,32 +77,50 @@ class EDAVisualizer:
         else:
             plt.show()
             
-    def plot_bmi_cost_relationship(self, save: bool = True) -> None:
-        """
-        Plot relationship between BMI and cost.
+    def plot_categorical_analysis(self, save: bool = True) -> None:
+        """Plot cost distributions for categorical variables."""
+        categorical_vars = ['smoker', 'exercise', 'yearly_physical', 'location_type']
         
-        Args:
-            save (bool): Whether to save the plot
-        """
-        plt.figure(figsize=(10, 6))
-        sns.scatterplot(data=self.data, x='bmi', y='cost', alpha=0.5)
-        plt.title('BMI vs. Cost')
-        plt.xlabel('BMI')
-        plt.ylabel('Cost (USD)')
+        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+        fig.suptitle('Cost Distribution by Categorical Variables')
+        
+        for i, var in enumerate(categorical_vars):
+            if var in self.data.columns:
+                ax = axes[i//2, i%2]
+                sns.boxplot(data=self.data, x=var, y='cost', ax=ax)
+                ax.set_title(f'Cost by {var}')
+                ax.tick_params(rotation=45)
+        
+        plt.tight_layout()
         
         if save:
-            plt.savefig(os.path.join(self.save_path, 'bmi_cost_relationship.png'))
+            plt.savefig(os.path.join(self.save_path, 'categorical_analysis.png'))
+            plt.close()
+        else:
+            plt.show()
+            
+    def plot_bmi_analysis(self, save: bool = True) -> None:
+        """Plot BMI-related visualizations."""
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+        
+        # BMI distribution
+        sns.histplot(data=self.data, x='bmi', bins=30, kde=True, ax=ax1)
+        ax1.set_title('BMI Distribution')
+        
+        # BMI vs Cost
+        sns.scatterplot(data=self.data, x='bmi', y='cost', hue='smoker', ax=ax2)
+        ax2.set_title('BMI vs Cost by Smoking Status')
+        
+        plt.tight_layout()
+        
+        if save:
+            plt.savefig(os.path.join(self.save_path, 'bmi_analysis.png'))
             plt.close()
         else:
             plt.show()
             
     def plot_geographic_distribution(self, save: bool = True) -> None:
-        """
-        Plot average costs by location.
-        
-        Args:
-            save (bool): Whether to save the plot
-        """
+        """Plot geographic distribution of costs."""
         avg_cost_by_location = self.data.groupby('location')['cost'].mean().reset_index()
         
         fig = px.choropleth(avg_cost_by_location,
@@ -155,38 +137,10 @@ class EDAVisualizer:
             fig.show()
             
     def create_eda_dashboard(self) -> None:
-        """Create comprehensive EDA dashboard with all plots."""
+        """Create comprehensive EDA dashboard."""
         self.plot_cost_distribution()
         self.plot_correlation_matrix()
         self.plot_age_cost_relationship()
-        self.plot_bmi_cost_relationship()
+        self.plot_categorical_analysis()
+        self.plot_bmi_analysis()
         self.plot_geographic_distribution()
-        
-        categorical_vars = ['smoker', 'exercise', 'married', 'education_level']
-        for var in categorical_vars:
-            if var in self.data.columns:
-                self.plot_cost_by_category(var)
-
-def main():
-    """
-    Main function to demonstrate EDA visualization pipeline.
-    """
-    try:
-        # Load preprocessed data
-        data = pd.read_csv('../../data/processed/processed_healthcare_costs.csv')
-        
-        # Initialize visualizer
-        visualizer = EDAVisualizer(data)
-        
-        # Create all plots
-        print("Creating EDA visualizations...")
-        visualizer.create_eda_dashboard()
-        
-        print("EDA visualizations completed successfully!")
-        print(f"Plots saved in: {visualizer.save_path}")
-        
-    except Exception as e:
-        print(f"Error during visualization: {str(e)}")
-
-if __name__ == "__main__":
-    main()
