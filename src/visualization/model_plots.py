@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import shap
-from typing import Dict, Optional
+from typing import Dict, Any, Optional
 import os
 
 class ModelVisualizer:
@@ -31,22 +31,14 @@ class ModelVisualizer:
         self.save_path = save_path
         self.create_save_dir()
         
-        # Set default style
         plt.style.use('seaborn')
-        sns.set_palette("husl")
         
     def create_save_dir(self):
         """Create directory for saving plots if it doesn't exist."""
         os.makedirs(self.save_path, exist_ok=True)
         
     def plot_feature_importance(self, model_name: str, save: bool = True) -> None:
-        """
-        Plot feature importance for a specific model.
-        
-        Args:
-            model_name (str): Name of the model
-            save (bool): Whether to save the plot
-        """
+        """Plot feature importance for a specific model."""
         model = self.models[model_name]
         importance = pd.DataFrame({
             'feature': self.X_test.columns,
@@ -65,13 +57,7 @@ class ModelVisualizer:
             plt.show()
             
     def plot_prediction_scatter(self, model_name: str, save: bool = True) -> None:
-        """
-        Plot predicted vs actual values.
-        
-        Args:
-            model_name (str): Name of the model
-            save (bool): Whether to save the plot
-        """
+        """Plot predicted vs actual values."""
         model = self.models[model_name]
         predictions = model.predict(self.X_test)
         
@@ -91,13 +77,7 @@ class ModelVisualizer:
             plt.show()
             
     def plot_residuals(self, model_name: str, save: bool = True) -> None:
-        """
-        Plot residuals analysis.
-        
-        Args:
-            model_name (str): Name of the model
-            save (bool): Whether to save the plot
-        """
+        """Plot residuals analysis."""
         model = self.models[model_name]
         predictions = model.predict(self.X_test)
         residuals = self.y_test - predictions
@@ -125,13 +105,7 @@ class ModelVisualizer:
             plt.show()
             
     def plot_shap_summary(self, model_name: str, save: bool = True) -> None:
-        """
-        Plot SHAP summary plot.
-        
-        Args:
-            model_name (str): Name of the model
-            save (bool): Whether to save the plot
-        """
+        """Plot SHAP summary plot."""
         model = self.models[model_name]
         explainer = shap.TreeExplainer(model)
         shap_values = explainer.shap_values(self.X_test)
@@ -146,47 +120,34 @@ class ModelVisualizer:
         else:
             plt.show()
             
-    def create_model_dashboard(self, model_name: str) -> None:
-        """
-        Create comprehensive model visualization dashboard.
+    def plot_learning_curves(self, model_name: str, save: bool = True) -> None:
+        """Plot learning curves for model evaluation."""
+        from sklearn.model_selection import learning_curve
         
-        Args:
-            model_name (str): Name of the model
-        """
+        model = self.models[model_name]
+        train_sizes, train_scores, test_scores = learning_curve(
+            model, self.X_test, self.y_test,
+            cv=5, n_jobs=-1, train_sizes=np.linspace(0.1, 1.0, 10)
+        )
+        
+        plt.figure(figsize=(10, 6))
+        plt.plot(train_sizes, train_scores.mean(axis=1), label='Training Score')
+        plt.plot(train_sizes, test_scores.mean(axis=1), label='Cross-validation Score')
+        plt.xlabel('Training Examples')
+        plt.ylabel('Score')
+        plt.title(f'Learning Curves - {model_name}')
+        plt.legend(loc='best')
+        
+        if save:
+            plt.savefig(os.path.join(self.save_path, f'learning_curves_{model_name}.png'))
+            plt.close()
+        else:
+            plt.show()
+            
+    def create_model_dashboard(self, model_name: str) -> None:
+        """Create comprehensive model visualization dashboard."""
         self.plot_feature_importance(model_name)
         self.plot_prediction_scatter(model_name)
         self.plot_residuals(model_name)
         self.plot_shap_summary(model_name)
-
-def main():
-    """
-    Main function to demonstrate model visualization pipeline.
-    """
-    try:
-        # Load data and models
-        from ..models.train import ModelTrainer
-        
-        # Load data
-        X = pd.read_csv('../../data/processed/engineered_features.csv')
-        y = pd.read_csv('../../data/processed/processed_healthcare_costs.csv')['cost']
-        
-        # Train models
-        trainer = ModelTrainer(X, y)
-        trainer.setup_all_models()
-        trainer.train_all_models()
-        
-        # Initialize visualizer
-        visualizer = ModelVisualizer(
-            trainer.trained_models,
-            trainer.X_test,
-            trainer.y_test
-        )
-        
-        # Create visualizations for each model
-        print("Creating model visualizations...")
-        for model_name in trainer.trained_models:
-            print(f"Processing {model_name}...")
-            visualizer.create_model_dashboard(model_name)
-            
-        print("Model visualizations completed successfully!")
-        print(f"Plots saved in:
+        self.plot_learning_curves(model_name)
