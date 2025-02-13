@@ -21,8 +21,7 @@ src/
 ├── visualization/             # Visualization modules
 │   ├── __init__.py
 │   ├── eda_plots.py          # Exploratory data analysis plots
-│   ├── model_plots.py        # Model visualization utilities
-│   └── report_plots.py       # Reporting visualizations
+│   └── model_plots.py        # Model visualization utilities
 │
 └── utils/                    # Utility functions
     ├── __init__.py
@@ -63,7 +62,6 @@ src/
 - **Key Components**:
   - `EDAVisualizer`: Exploratory data analysis plots
   - `ModelVisualizer`: Model-specific visualizations
-  - `ReportVisualizer`: Visualization for reports
   - Supports various plot types and interactive visualizations
 
 ### 5. Utils Module (`utils/`)
