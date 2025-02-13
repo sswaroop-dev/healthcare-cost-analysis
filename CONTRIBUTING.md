@@ -87,8 +87,7 @@ pip install -r requirements.txt
 ```bash
 healthcare-cost-analysis/
 ├── data/                  # Your healthcare datasets
-├── src/                   # Analysis source code
-└── reports/              # Analysis results
+└── src/                   # Analysis source code
 ```
 
 ## 🤔 Questions?
