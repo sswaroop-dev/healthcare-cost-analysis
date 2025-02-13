@@ -1,171 +1,176 @@
 """
-Model evaluation utilities for healthcare cost prediction.
+Model training utilities for healthcare cost prediction.
 """
 
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Optional
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
-import shap
+from typing import Dict, Any, Optional
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.model_selection import train_test_split
+import joblib
 
-class ModelEvaluator:
+class ModelTrainer:
     """
-    Class for evaluating regression models for healthcare cost prediction.
+    Class for training different regression models for healthcare cost prediction.
     """
-    def __init__(self, trained_models: Dict, X_train: pd.DataFrame, X_test: pd.DataFrame,
-                 y_train: pd.Series, y_test: pd.Series):
+    def __init__(self, X: pd.DataFrame, y: pd.Series, test_size: float = 0.2, random_state: int = 42):
         """
-        Initialize model evaluator.
+        Initialize model trainer.
         
         Args:
-            trained_models (Dict): Dictionary of trained models
-            X_train (pd.DataFrame): Training features
-            X_test (pd.DataFrame): Testing features
-            y_train (pd.Series): Training target
-            y_test (pd.Series): Testing target
+            X (pd.DataFrame): Feature matrix
+            y (pd.Series): Target variable
+            test_size (float): Proportion of dataset to include in the test split
+            random_state (int): Random state for reproducibility
         """
-        self.trained_models = trained_models
-        self.X_train = X_train
-        self.X_test = X_test
-        self.y_train = y_train
-        self.y_test = y_test
-        self.predictions = {}
-        self.metrics = {}
+        self.X = X
+        self.y = y
+        self.test_size = test_size
+        self.random_state = random_state
+        self.models = {}
+        self.trained_models = {}
+        self._split_data()
         
-    def make_predictions(self):
-        """Make predictions for all models on test data."""
-        for name, model in self.trained_models.items():
-            self.predictions[name] = model.predict(self.X_test)
-            
-    def calculate_metrics(self) -> Dict:
-        """
-        Calculate evaluation metrics for all models.
+    def _split_data(self):
+        """Split data into training and testing sets."""
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+            self.X, self.y, 
+            test_size=self.test_size, 
+            random_state=self.random_state
+        )
         
-        Returns:
-            Dict: Dictionary containing evaluation metrics for each model
+    def setup_random_forest(self, params: Optional[Dict[str, Any]] = None):
         """
-        for name, y_pred in self.predictions.items():
-            self.metrics[name] = {
-                'RMSE': np.sqrt(mean_squared_error(self.y_test, y_pred)),
-                'MAE': mean_absolute_error(self.y_test, y_pred),
-                'R2': r2_score(self.y_test, y_pred),
-                'MPE': np.mean((self.y_test - y_pred) / self.y_test) * 100,
-                'MAPE': np.mean(np.abs((self.y_test - y_pred) / self.y_test)) * 100
-            }
-        return self.metrics
-    
-    def get_shap_values(self, model_name: str, max_display: int = 10):
-        """
-        Calculate SHAP values for feature importance interpretation.
+        Setup Random Forest model with parameters.
         
         Args:
-            model_name (str): Name of the model to analyze
-            max_display (int): Maximum number of features to display
+            params (Dict[str, Any], optional): Model parameters
+        """
+        default_params = {
+            'n_estimators': 100,
+            'max_features': int(np.sqrt(self.X.shape[1])),
+            'random_state': self.random_state
+        }
+        if params:
+            default_params.update(params)
+        
+        self.models['random_forest'] = RandomForestRegressor(**default_params)
+        
+    def setup_gradient_boosting(self, params: Optional[Dict[str, Any]] = None):
+        """
+        Setup Gradient Boosting model with parameters.
+        
+        Args:
+            params (Dict[str, Any], optional): Model parameters
+        """
+        default_params = {
+            'n_estimators': 500,
+            'learning_rate': 0.01,
+            'random_state': self.random_state
+        }
+        if params:
+            default_params.update(params)
+        
+        self.models['gradient_boosting'] = GradientBoostingRegressor(**default_params)
+        
+    def setup_all_models(self, rf_params: Optional[Dict[str, Any]] = None, 
+                        gb_params: Optional[Dict[str, Any]] = None):
+        """
+        Setup all models with given parameters.
+        
+        Args:
+            rf_params (Dict[str, Any], optional): Random Forest parameters
+            gb_params (Dict[str, Any], optional): Gradient Boosting parameters
+        """
+        self.setup_random_forest(rf_params)
+        self.setup_gradient_boosting(gb_params)
+        
+    def train_model(self, model_name: str):
+        """
+        Train a specific model.
+        
+        Args:
+            model_name (str): Name of the model to train
+        """
+        if model_name not in self.models:
+            raise ValueError(f"Model {model_name} not found. Please set up the model first.")
             
-        Returns:
-            tuple: SHAP explainer and values
+        print(f"Training {model_name}...")
+        model = self.models[model_name]
+        model.fit(self.X_train, self.y_train)
+        self.trained_models[model_name] = model
+        
+    def train_all_models(self):
+        """Train all setup models."""
+        for model_name in self.models:
+            self.train_model(model_name)
+            
+    def save_model(self, model_name: str, filepath: str):
+        """
+        Save a trained model to disk.
+        
+        Args:
+            model_name (str): Name of the model to save
+            filepath (str): Path where to save the model
         """
         if model_name not in self.trained_models:
-            raise ValueError(f"Model {model_name} not found.")
+            raise ValueError(f"Model {model_name} not found or not trained yet.")
             
-        model = self.trained_models[model_name]
-        explainer = shap.TreeExplainer(model)
-        shap_values = explainer.shap_values(self.X_test)
+        joblib.dump(self.trained_models[model_name], filepath)
         
-        return explainer, shap_values
-    
-    def get_model_comparison(self) -> pd.DataFrame:
+    def get_feature_importance(self, model_name: str) -> pd.DataFrame:
         """
-        Get comparison of all models' performance metrics.
-        
-        Returns:
-            pd.DataFrame: Comparison of model metrics
-        """
-        if not self.metrics:
-            self.calculate_metrics()
-            
-        comparison = pd.DataFrame(self.metrics).T
-        return comparison
-    
-    def get_prediction_errors(self, model_name: str) -> pd.DataFrame:
-        """
-        Get prediction errors analysis for a specific model.
+        Get feature importance for a trained model.
         
         Args:
-            model_name (str): Name of the model to analyze
+            model_name (str): Name of the model
             
         Returns:
-            pd.DataFrame: DataFrame with actual, predicted values and errors
+            pd.DataFrame: Feature importance scores
         """
-        if model_name not in self.predictions:
-            raise ValueError(f"No predictions found for model {model_name}")
+        if model_name not in self.trained_models:
+            raise ValueError(f"Model {model_name} not found or not trained yet.")
             
-        errors_df = pd.DataFrame({
-            'Actual': self.y_test,
-            'Predicted': self.predictions[model_name],
-            'Error': self.y_test - self.predictions[model_name],
-            'Percentage_Error': ((self.y_test - self.predictions[model_name]) / self.y_test) * 100
+        model = self.trained_models[model_name]
+        importance = pd.DataFrame({
+            'feature': self.X.columns,
+            'importance': model.feature_importances_
         })
-        return errors_df
-    
-    def evaluate_all_models(self) -> Dict:
-        """
-        Run complete evaluation pipeline for all models.
-        
-        Returns:
-            Dict: Dictionary containing all evaluation results
-        """
-        self.make_predictions()
-        metrics = self.calculate_metrics()
-        
-        evaluation_results = {
-            'metrics': metrics,
-            'comparison': self.get_model_comparison(),
-            'errors': {name: self.get_prediction_errors(name) 
-                      for name in self.trained_models.keys()}
-        }
-        
-        return evaluation_results
+        return importance.sort_values('importance', ascending=False)
 
 def main():
     """
-    Main function to demonstrate model evaluation pipeline.
+    Main function to demonstrate model training pipeline.
     """
     try:
-        # Load data and models
-        from train import ModelTrainer
+        # Load engineered features
         X = pd.read_csv('../../data/processed/engineered_features.csv')
         y = pd.read_csv('../../data/processed/processed_healthcare_costs.csv')['cost']
         
-        # Train models
+        # Initialize trainer
         trainer = ModelTrainer(X, y)
+        
+        # Setup and train models
+        print("Setting up models...")
         trainer.setup_all_models()
+        
+        print("Training models...")
         trainer.train_all_models()
         
-        # Initialize evaluator
-        evaluator = ModelEvaluator(
-            trainer.trained_models,
-            trainer.X_train,
-            trainer.X_test,
-            trainer.y_train,
-            trainer.y_test
-        )
+        # Save models
+        print("Saving trained models...")
+        trainer.save_model('random_forest', '../../models/random_forest.joblib')
+        trainer.save_model('gradient_boosting', '../../models/gradient_boosting.joblib')
         
-        # Run evaluation
-        print("Evaluating models...")
-        results = evaluator.evaluate_all_models()
-        
-        # Print results
-        print("\nModel Comparison:")
-        print(results['comparison'])
-        
-        # Save evaluation results
-        results['comparison'].to_csv('../../reports/model_comparison.csv')
-        
-        print("\nEvaluation completed successfully!")
+        # Print feature importance
+        for model_name in ['random_forest', 'gradient_boosting']:
+            print(f"\nFeature Importance for {model_name}:")
+            print(trainer.get_feature_importance(model_name))
+            
+        print("\nModel training completed successfully!")
         
     except Exception as e:
-        print(f"Error during model evaluation: {str(e)}")
+        print(f"Error during model training: {str(e)}")
 
 if __name__ == "__main__":
     main()
