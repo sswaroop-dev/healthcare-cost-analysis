@@ -101,19 +101,6 @@ from src import run_pipeline
 results = run_pipeline('data/healthcare_costs.csv')
 ```
 
-## 📊 Example Visualizations
-
-<table>
-  <tr>
-    <td><img src="reports/figures/cost_distribution.png" alt="Cost Distribution" width="400"/></td>
-    <td><img src="reports/figures/feature_importance.png" alt="Feature Importance" width="400"/></td>
-  </tr>
-  <tr>
-    <td>Cost Distribution Analysis</td>
-    <td>Feature Importance Plot</td>
-  </tr>
-</table>
-
 ## 📝 Analysis Steps
 
 1. **Data Preprocessing**
@@ -153,7 +140,7 @@ The analysis revealed that:
 
 ## 🤝 Contributing
 
-
+We welcome contributions! Please read our CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
 
 ## 📄 License
 
