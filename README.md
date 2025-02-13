@@ -31,7 +31,10 @@ healthcare-cost-analysis/
 │   └── visualization/      # Visualization tools
 │
 ├── LICENSE                  # License file
+├── requirements.txt         # Requirements file
+├── CONTRIBUTING.md          # Contibution documentation
 └── README.md               # Project documentation
+
 ```
 
 ## 🔍 Features
