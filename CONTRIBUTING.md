@@ -88,8 +88,7 @@ pip install -r requirements.txt
 healthcare-cost-analysis/
 ├── data/                  # Your healthcare datasets
 ├── src/                   # Analysis source code
-├── reports/              # Analysis results
-└── notebooks/           # Jupyter notebooks
+└── reports/              # Analysis results
 ```
 
 ## 🤔 Questions?
